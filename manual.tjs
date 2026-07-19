@@ -1,0 +1,99 @@
+
+class Live2DDevice {
+    /**
+     * @param oglbase  GetProcAddress を保持してるオブジェクト
+     * 現在の OGLコンテキストに対して初期化されます
+     */
+    function Live2DDevice(oglbase);
+
+    /**
+     * 全体の描画開始時に1度だけ呼び出す
+     * ※生成時のコンテキストで呼び出すこと
+     */
+    function onBeginScene(width, height);
+
+    /**
+     * 全体の描画完了時に1度だけ呼び出す
+     */
+    function onEndScene();
+};
+
+class Live2DModel {
+
+    /**
+     * コンストラクタ
+     */
+    function Live2DModel(device);
+
+    /**
+     * 内容消去
+     */
+    function clear();
+
+    /*
+     * l2dファイル読み込み
+     */
+    function load(filename);
+
+    /**
+     * 表示スケール設定
+     */
+    function setScale(scale);
+    function getScale();
+
+    /**
+     * 表示マトリクス指定
+     */
+    function setMatrix(m11, m12, m13, m21, m22, m23);
+
+    /**
+     * 表示処理。OpenGLコンテキストで実行すると描画される
+     */
+    function render();
+
+    function setVoiceValue(voice);
+    function setVoiceWeight(weight);
+    function setVoiceMode(mode);
+
+    function setBlinkingInterval(interal);
+    function setBlinkingSettings(closing, closed, opening);
+    function setBlinkingMode(mode);
+
+    function setMosaicParam(x, y);
+
+    function getExpressionCount();
+    function getExpressionName(no);
+
+    function setExpression(id);
+    function getExpression();
+    function fixExpression(id);
+
+    function getMotionGroupCount();
+    function getMotionGroupName(no);
+    
+    function getMotionCount(group);
+    function getMotionCount(group);
+    function getMotionName(group, no);
+    function startMotion(name, loop)
+    function stopMotion(name);
+    function getCurrentMotions();
+
+	function getParameterCount();
+	function getParameterInfo();
+	function getParameterValue();
+    function setParameterValue();
+    function setParameterType();
+    function setDiffParameterValue();
+    
+	function progress();
+	function canSync();
+	function sync();
+
+	function addLipSyncId();
+    function addEyeBlinkId();
+
+	function isPlaying();
+
+    function getEventCount();
+    function getEventName(no);
+}
