@@ -8,8 +8,8 @@ else
 FIXPATH = realpath
 endif
 
-PRESET=x86-windows
-BUILD_TYPE=Release
+PRESET?=x86-windows
+BUILD_TYPE?=Release
 
 BUILD_PATH=$(shell cmake --preset $(PRESET) -N | grep BUILD_DIR | sed 's/.*BUILD_DIR="\(.*\)"/\1/')
 

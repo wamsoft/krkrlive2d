@@ -16,14 +16,29 @@ class Live2DDevice {
      * 全体の描画完了時に1度だけ呼び出す
      */
     function onEndScene();
+
+    /**
+     * シェーダの事前コンパイルを実行する
+     * 未呼び出しの場合は初回描画時にまとめてコンパイルされ
+     * 数秒程度の待ち時間が発生するため、起動時などに呼んでおくことを推奨
+     * ※生成時のコンテキストで呼び出すこと
+     */
+    function prepareShaders();
 };
 
+/**
+ * 情報参照・操作用モデル
+ * デバイス(OpenGLコンテキスト)なしで生成できる
+ * モデルの情報参照・パラメータ操作・モーション制御が可能
+ * 描画するには Live2DPlayer を使用する
+ */
 class Live2DModel {
 
     /**
      * コンストラクタ
+     * デバイス指定は不要
      */
-    function Live2DModel(device);
+    function Live2DModel();
 
     /**
      * 内容消去
@@ -34,6 +49,104 @@ class Live2DModel {
      * l2dファイル読み込み
      */
     function load(filename);
+
+    /**
+     * 複製
+     */
+    function clone();
+
+    // ---------------------------------------------------------
+    // 以下 Live2DPlayer と共通のインターフェース
+    // ---------------------------------------------------------
+
+    function getExpressionCount();
+    function getExpressionName(no);
+
+    function setExpression(id);
+    function getExpression();
+    function fixExpression(id);
+
+    function getMotionGroupCount();
+    function getMotionGroupName(no);
+
+    function getMotionCount(group);
+    function getMotionName(group, no);
+    function getMotionType(group);
+    function setMotionType(group, type);
+    function startMotion(group, no_or_name, loop, fadeIn, fadeOut);
+    function stopMotion(group);
+    function getCurrentMotions();
+
+	function getParameterCount();
+	function getParameterInfo(no);
+	function getParameterValue(no_or_name);
+    function setParameterValue(no_or_name, value);
+    function setParameterType(no_or_name, type);
+    function setDiffParameterValue(no_or_name, value);
+
+	function progress(tick);
+	function canSync();
+	function sync();
+
+	function addLipSyncId(no_or_name);
+    function addEyeBlinkId(no_or_name);
+
+	function isPlaying(group);
+
+    function getPartCount();
+    function getPartInfo(no);
+    function getPartValue(no_or_name);
+    function setPartValue(no_or_name, value);
+    function setPartFadeTime(fadeTime);
+
+    function getEventCount();
+    function getEventName(no);
+
+    function addVriableMotion(varname, group, no_or_name, min, max, descrete);
+    function delVariableMotion(varname);
+    function getVariableMotionCount();
+    function getVariableMotionName(index);
+    function getVariableMotionInfo(index);
+    function setVariable(varname, value);
+    function getVariable(varname);
+
+    function isMosaicModel();
+}
+
+/**
+ * 描画用プレイヤー
+ * Live2DModel と同じインターフェースに加えて描画用メソッドを持つ
+ * 生成には Live2DDevice が必要
+ */
+class Live2DPlayer {
+
+    /**
+     * コンストラクタ
+     * @param device Live2DDevice インスタンス
+     */
+    function Live2DPlayer(device);
+
+    /**
+     * 内容消去
+     */
+    function clear();
+
+    /*
+     * l2dファイル読み込み
+     */
+    function load(filename);
+
+    /**
+     * Live2DModel インスタンスからプレイヤーを生成
+     * 読み込み済みのモデルの状態を引き継ぐ
+     * @param model Live2DModel インスタンス
+     */
+    function loadModel(model);
+
+    /**
+     * 複製
+     */
+    function clone();
 
     /**
      * 表示スケール設定
@@ -61,39 +174,5 @@ class Live2DModel {
 
     function setMosaicParam(x, y);
 
-    function getExpressionCount();
-    function getExpressionName(no);
-
-    function setExpression(id);
-    function getExpression();
-    function fixExpression(id);
-
-    function getMotionGroupCount();
-    function getMotionGroupName(no);
-    
-    function getMotionCount(group);
-    function getMotionCount(group);
-    function getMotionName(group, no);
-    function startMotion(name, loop)
-    function stopMotion(name);
-    function getCurrentMotions();
-
-	function getParameterCount();
-	function getParameterInfo();
-	function getParameterValue();
-    function setParameterValue();
-    function setParameterType();
-    function setDiffParameterValue();
-    
-	function progress();
-	function canSync();
-	function sync();
-
-	function addLipSyncId();
-    function addEyeBlinkId();
-
-	function isPlaying();
-
-    function getEventCount();
-    function getEventName(no);
+    // ほか Live2DModel と共通のインターフェースを持つ
 }

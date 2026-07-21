@@ -1,0 +1,7 @@
+{
+  "name": "krkrlive2d",
+  "version": "1.0.0",
+  "dependencies": [
+    "minizip-ng"
+  ]
+}

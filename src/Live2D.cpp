@@ -90,7 +90,7 @@ public:
     return mSize;
   }
 
-  static IReadStream *open(const char *file) { 
+  static IReadStream *open(const char *file) {
     auto ret = new PReadStream();
     if (ret) {
       if (!ret->OpenFile(file)) {
@@ -107,22 +107,58 @@ private:
   size_t mSize;
 };
 
-IMemoryAllocator *mAllocator = nullptr;
+static IMemoryAllocator *mAllocator = nullptr;
+static ILive2DRuntime *sRuntime = nullptr;
 
 static void logfunc(const char *message) {
   ttstr msg = convertUtf8StringToTtstr(message);
   TVPAddLog(msg);
 }
 
+// --------------------------------------------------------
+// 共通ランタイム
+// GLコンテキスト不要・初回利用時に遅延生成
+// --------------------------------------------------------
+
+ILive2DRuntime *
+Live2DDevice::GetRuntime()
+{
+  if (!sRuntime) {
+    if (!mAllocator) {
+      mAllocator = createMemoryAllocator();
+    }
+    ILive2DRuntime::InitParam param;
+    memset(&param, 0, sizeof(param));
+    param.open = PReadStream::open;
+    param.log  = logfunc;
+    param.memoryAllocator = mAllocator;
+    sRuntime = Live2DCreateRuntime(param);
+  }
+  return sRuntime;
+}
+
+void
+Live2DDevice::Done()
+{
+  if (sRuntime) {
+    sRuntime->Release();
+    sRuntime = nullptr;
+  }
+  if (mAllocator) {
+    delete mAllocator;
+    mAllocator = nullptr;
+  }
+}
+
+// --------------------------------------------------------
+// デバイス
+// --------------------------------------------------------
+
 Live2DDevice::Live2DDevice(tTJSVariant glbase)
  : mLive2DDevice(nullptr)
  , mSurfaceWidth(0)
  , mSurfaceHeight(0)
 {
-  if (!mAllocator) {
-    mAllocator = createMemoryAllocator();
-  }
-
   tTJSVariantClosure clo = glbase.AsObjectClosureNoAddRef();
   tTJSVariant iface_v;
   if (TJS_FAILED(clo.PropGet(0, TJS_W("GLGetProcAddress"), NULL, &iface_v, NULL)))
@@ -131,11 +167,8 @@ Live2DDevice::Live2DDevice(tTJSVariant glbase)
 
   ILive2DDevice::InitParam param;
   memset(&param, 0, sizeof(param));
-  param.open = PReadStream::open;
-  param.log  = logfunc;
   param.getProcAddress = glGetProcInterface;
-  param.memoryAllocator = mAllocator;
-  mLive2DDevice = Live2DCreate(param);
+  mLive2DDevice = GetRuntime()->CreateDevice(param);
 }
 
 Live2DDevice::~Live2DDevice()
@@ -147,19 +180,10 @@ Live2DDevice::~Live2DDevice()
 }
 
 void
-Live2DDevice::Done()
-{
-  if (mAllocator) {
-    delete mAllocator;
-    mAllocator = nullptr;
-  }
-}
-
-void
 Live2DDevice::onBeginScene(int surfaceWidth, int surfaceHeight)
 {
   mSurfaceWidth  = surfaceWidth;
-  mSurfaceHeight = surfaceHeight;  
+  mSurfaceHeight = surfaceHeight;
   if (mLive2DDevice) {
     mLive2DDevice->OnBeginScene();
   }
@@ -173,21 +197,75 @@ Live2DDevice::onEndScene()
   }
 }
 
+void
+Live2DDevice::prepareShaders()
+{
+  if (mLive2DDevice) {
+    mLive2DDevice->PrepareShaders();
+  }
+}
+
 ILive2DPlayer *
 Live2DDevice::CreatePlayer(const char *filename)
 {
   return mLive2DDevice ? mLive2DDevice->CreatePlayer(filename) : nullptr;
 }
 
+ILive2DPlayer *
+Live2DDevice::CreatePlayer(const ILive2DModel *model)
+{
+  return mLive2DDevice ? mLive2DDevice->CreatePlayer(model) : nullptr;
+}
+
+// --------------------------------------------------------
+// 情報参照・操作用モデル (デバイス不要)
 // --------------------------------------------------------
 
-Live2DModel::Live2DModel(tTJSVariant device)
-: mDeviceObj(device), mDevice(nullptr), mModel(nullptr), mScale(1.0) 
+Live2DModel::Live2DModel()
+: mModel(nullptr)
+{
+}
+
+Live2DModel::~Live2DModel()
+{
+  clear();
+}
+
+void Live2DModel::clear() {
+  if (mModel) {
+    mModel->Release();
+    mModel = nullptr;
+  }
+  mFilename = TJS_W("");
+}
+
+void Live2DModel::load(const tjs_char *filename) {
+  clear();
+  mFilename = filename;
+  std::string _filename = convertTtstrToUtf8String(mFilename);
+  mModel = Live2DDevice::GetRuntime()->CreateModel(_filename.c_str());
+}
+
+Live2DModel *Live2DModel::clone() {
+  Live2DModel *instance = new Live2DModel();
+  instance->mFilename = mFilename;
+  if (mModel) {
+    instance->mModel = mModel->Clone();
+  }
+  return instance;
+}
+
+// --------------------------------------------------------
+// 描画用プレイヤー
+// --------------------------------------------------------
+
+Live2DPlayer::Live2DPlayer(tTJSVariant device)
+: mDeviceObj(device), mDevice(nullptr), mModel(nullptr), mScale(1.0)
 {
   mDevice = ncbInstanceAdaptor<Live2DDevice>::GetNativeInstance(mDeviceObj.AsObjectNoAddRef());
 }
 
-Live2DModel::~Live2DModel() 
+Live2DPlayer::~Live2DPlayer()
 {
   clear();
   mDevice = nullptr;
@@ -196,7 +274,7 @@ Live2DModel::~Live2DModel()
 
 // ---------------------
 
-void Live2DModel::alloc() 
+void Live2DPlayer::alloc()
 {
   if (mDevice && !mModel && mFilename != TJS_W("")) {
     std::string _filename = convertTtstrToUtf8String(mFilename);
@@ -207,7 +285,7 @@ void Live2DModel::alloc()
   }
 }
 
-void Live2DModel::free() 
+void Live2DPlayer::free()
 {
   if (mModel) {
     mModel->Release();
@@ -215,16 +293,16 @@ void Live2DModel::free()
   }
 }
 
-void Live2DModel::render() {
+void Live2DPlayer::render() {
   if (mDevice && mModel) {
     int width = mDevice->SurfaceWidth();
     int height = mDevice->SurfaceHeight();
     mModel->SetScreenSize(width, height);
     mModel->SetScale(mScale, -mScale);
     tjs_real w = (tjs_real)width / 2.0;
-    mModel->SetMatrix(mMtx.m11, -mMtx.m21, 0, 0, 
+    mModel->SetMatrix(mMtx.m11, -mMtx.m21, 0, 0,
                       mMtx.m12, -mMtx.m22, 0, 0,
-                      0, 0, 1, 0, 
+                      0, 0, 1, 0,
                       mMtx.m13 / w, -mMtx.m23 / w, 0, 1);
     mModel->Render();
   }
@@ -232,19 +310,30 @@ void Live2DModel::render() {
 
 // ---------------------
 
-void Live2DModel::clear() {
+void Live2DPlayer::clear() {
   free();
   mFilename = TJS_W("");
 }
 
-void Live2DModel::load(const tjs_char *filename) {
+void Live2DPlayer::load(const tjs_char *filename) {
   clear();
   mFilename = filename;
   alloc();
 }
 
-Live2DModel *Live2DModel::clone() {
-  Live2DModel *instance = new Live2DModel(mDeviceObj);
+void Live2DPlayer::loadModel(tTJSVariant model) {
+  clear();
+  Live2DModel *live2dModel = ncbInstanceAdaptor<Live2DModel>::GetNativeInstance(model.AsObjectNoAddRef());
+  if (live2dModel && live2dModel->GetIModel() && mDevice) {
+    mModel = mDevice->CreatePlayer(live2dModel->GetIModel());
+    if (mModel) {
+      mModel->SetVisible(true);
+    }
+  }
+}
+
+Live2DPlayer *Live2DPlayer::clone() {
+  Live2DPlayer *instance = new Live2DPlayer(mDeviceObj);
   instance->mFilename = mFilename;
   instance->mScale = mScale;
   instance->mMtx   = mMtx;
@@ -255,44 +344,44 @@ Live2DModel *Live2DModel::clone() {
 }
 
 
-void Live2DModel::setVoiceValue(tjs_real voice) {
+void Live2DPlayer::setVoiceValue(tjs_real voice) {
   if (mModel) {
     return mModel->SetVoiceValue((float)voice);
   }
 }
 
-void Live2DModel::setVoiceWeight(tjs_real weight) {
+void Live2DPlayer::setVoiceWeight(tjs_real weight) {
   if (mModel) {
     return mModel->SetVoiceWeight((float)weight);
   }
 }
 
-void Live2DModel::setVoiceMode(tjs_int mode) {
+void Live2DPlayer::setVoiceMode(tjs_int mode) {
   if (mModel) {
     return mModel->SetVoiceMode((float)mode);
   }
 }
 
-void Live2DModel::setBlinkingInterval(tjs_real blinkingInterval) {
+void Live2DPlayer::setBlinkingInterval(tjs_real blinkingInterval) {
   if (mModel) {
     return mModel->SetBlinkingInterval(blinkingInterval);
   }
 }
 
-void Live2DModel::setBlinkingSettings(tjs_real closing, tjs_real closed,
+void Live2DPlayer::setBlinkingSettings(tjs_real closing, tjs_real closed,
                                       tjs_real opening) {
   if (mModel) {
     return mModel->SetBlinkingSettings(closing, closed, opening);
   }
 }
 
-void Live2DModel::setBlinkingMode(tjs_int mode) {
+void Live2DPlayer::setBlinkingMode(tjs_int mode) {
   if (mModel) {
     return mModel->SetBlinkingMode(mode);
   }
 }
 
-void Live2DModel::setMosaicParam(tjs_real mosaicx, tjs_real mosaicy) {
+void Live2DPlayer::setMosaicParam(tjs_real mosaicx, tjs_real mosaicy) {
   if (mModel) {
     return mModel->SetMosaicParam(mosaicx, mosaicy);
   }
@@ -322,6 +411,10 @@ static void setStrProp(iTJSDispatch2 *obj, const tjs_char *name, ttstr &value) {
 #define CLASSNAME Live2DModel
 #include "Live2D_common.cpp"
 
+#undef CLASSNAME
+#define CLASSNAME Live2DPlayer
+#include "Live2D_common.cpp"
+
 //-----------------------------------------------------
 
 NCB_REGISTER_CLASS(Live2DMatrix) {
@@ -332,9 +425,20 @@ NCB_REGISTER_CLASS(Live2DDevice) {
   NCB_CONSTRUCTOR((tTJSVariant));
   NCB_METHOD(onBeginScene);
   NCB_METHOD(onEndScene);
+  NCB_METHOD(prepareShaders);
 };
 
 NCB_REGISTER_CLASS(Live2DModel) {
+  NCB_CONSTRUCTOR(());
+
+  NCB_METHOD(clone);
+  NCB_METHOD(clear);
+  NCB_METHOD(load);
+
+#include "Live2D_method.cpp"
+};
+
+NCB_REGISTER_CLASS(Live2DPlayer) {
   NCB_CONSTRUCTOR((tTJSVariant));
 
   NCB_PROPERTY_RO(device, getDevice);
@@ -342,6 +446,7 @@ NCB_REGISTER_CLASS(Live2DModel) {
   NCB_METHOD(clone);
   NCB_METHOD(clear);
   NCB_METHOD(load);
+  NCB_METHOD(loadModel);
 
   NCB_METHOD(setScale);
   NCB_METHOD(getScale);
