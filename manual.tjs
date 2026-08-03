@@ -2,6 +2,9 @@
 class Live2DDevice {
     /**
      * @param oglbase  GetProcAddress を保持してるオブジェクト
+     *   以下のいずれかを指定できる:
+     *     - krkrgles プラグインが提供する OpenGL コンテキストオブジェクト
+     *     - 新しい吉里吉里Z の OGLDrawDevice (本体組み込みの OpenGL 描画デバイス)
      * 現在の OGLコンテキストに対して初期化されます
      */
     function Live2DDevice(oglbase);
