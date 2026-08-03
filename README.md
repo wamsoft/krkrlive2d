@@ -165,9 +165,7 @@ Rename-Item .\hiyori_pro_t10.zip hiyori_pro_t10.l2d
 `model3.json` からの相対パス参照 (テクスチャ・モーション等) はそのまま解決されます。
 
 
-## ライセンス（※仮記載・後日整備）
-
-> 以下は項目の仮置きです。正式な文面・条件は別途準備します。
+## ライセンス
 
 - **Live2D Cubism SDK / Core について**
   本プラグインがリンクする Live2D Cubism の SDK / Core ライブラリおよび
