@@ -1,5 +1,19 @@
-#include <Windows.h>
 #include <ilive2d.h>
+
+//
+// Cubism ランタイムへ渡すメモリアロケータ。
+//
+//  - Windows: 専用ヒープ (LFH 有効) を作り、そこから確保する従来実装。
+//             大量の細かいアロケートに対する断片化を抑える目的。
+//  - その他 : 標準 malloc/free による汎用実装。
+//
+// IMemoryAllocator は Allocate/Deallocate のみを要求するので、
+// プラットフォームごとに実装を差し替えても呼び出し側は不変。
+//
+
+#ifdef _WIN32
+
+#include <Windows.h>
 
 class MemoryAllocator: public IMemoryAllocator {
 public:
@@ -44,7 +58,7 @@ void* MemoryAllocator::Allocate(size_t alloc_size)
             if( HeapHandle == NULL ) {
                 size /= 2;
             }
-        } 
+        }
         if( HeapHandle ) {
             ULONG HeapInformation = 2;
             BOOL lfhenable = ::HeapSetInformation( HeapHandle, HeapCompatibilityInformation, &HeapInformation, sizeof(HeapInformation) );
@@ -69,8 +83,26 @@ bool MemoryAllocator::Deallocate(void* memory)
     return ret;
 }
 
-IMemoryAllocator *createMemoryAllocator() 
+#else  // !_WIN32
+
+#include <cstdlib>
+
+// 汎用実装: 標準ライブラリの malloc/free を用いる。
+class MemoryAllocator: public IMemoryAllocator {
+public:
+    virtual ~MemoryAllocator() {}
+    virtual void *Allocate(size_t size) {
+        return ::malloc(size);
+    }
+    virtual bool Deallocate(void *mem) {
+        ::free(mem);
+        return true;
+    }
+};
+
+#endif // _WIN32
+
+IMemoryAllocator *createMemoryAllocator()
 {
     return new MemoryAllocator();
 }
-

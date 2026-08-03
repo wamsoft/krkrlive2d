@@ -1,4 +1,3 @@
-#include <Windows.h>
 #include <ncbind.hpp>
 #include <memory>
 
@@ -18,7 +17,7 @@ extern IMemoryAllocator *createMemoryAllocator();
  */
 class PReadStream : public IReadStream {
 public:
-  PReadStream() : mRefCount(1), mStream(nullptr), mSize(0) {
+  PReadStream() : mRefCount(1), mStream(nullptr), mSize(0), mPosition(0) {
   }
 
   virtual ~PReadStream() {
@@ -37,21 +36,23 @@ public:
 
   void Close() {
     if (mStream) {
-      mStream->Release();
+      mStream->Destruct();
       mStream = nullptr;
       mSize = 0;
+      mPosition = 0;
     }
   }
 
   bool OpenFile(const char *filename) {
     Close();
-    // アーカイブ内ファイルの場合はストリーム経由アクセスでメモリ読み出し
+    // 吉里吉里のストレージ経由でアクセス (XP3 アーカイブ内でも可)。
+    // Win32 の IStream ではなく iTJSBinaryStream を使うことで、
+    // 新旧いずれの tp_stub でもコンパイルできる。
     ttstr name = convertUtf8StringToTtstr(filename, strlen(filename));
-    mStream = TVPCreateIStream(name, TJS_BS_READ);
+    mStream = TVPCreateStream(name, TJS_BS_READ);
     if (mStream) {
-      STATSTG stat;
-      mStream->Stat(&stat, STATFLAG_NONAME);
-      mSize = (size_t)(stat.cbSize.QuadPart);
+      mSize = (size_t)mStream->GetSize();
+      mPosition = 0;
       return true;
     }
     return false;
@@ -59,30 +60,27 @@ public:
 
   virtual size_t Read(void *buf, size_t size) {
     if (mStream) {
-      ULONG readed;
-      if (SUCCEEDED(mStream->Read(buf, size, &readed))) {
-        return readed;
-      }
+      size_t readed = (size_t)mStream->Read(buf, (tjs_uint)size);
+      mPosition += readed;
+      return readed;
     }
     return 0;
   }
 
   virtual int64_t Tell() const {
-    if (mStream) {
-      LARGE_INTEGER offset;
-      offset.QuadPart = 0;
-      ULARGE_INTEGER pos;
-      mStream->Seek(offset, SEEK_CUR, &pos);
-      return pos.QuadPart;
-    }
-    return 0;
+    // iTJSBinaryStream::GetPosition は tp_stub に実体が無いことがあるので自前で数える
+    return (int64_t)mPosition;
   }
 
   virtual void Seek(int64_t offset, int origin) {
     if (mStream) {
-      LARGE_INTEGER _offset;
-      _offset.QuadPart = offset;
-      mStream->Seek(_offset, origin, nullptr);
+      // origin(SET/CUR/END = 0/1/2)は iTJSBinaryStream の whence と一致する
+      mStream->Seek((tjs_int64)offset, origin);
+      switch (origin) {
+        case TJS_BS_SEEK_SET: mPosition = (size_t)offset; break;
+        case TJS_BS_SEEK_CUR: mPosition += (size_t)offset; break;
+        case TJS_BS_SEEK_END: mPosition = (size_t)((int64_t)mSize + offset); break;
+      }
     }
   }
 
@@ -102,9 +100,10 @@ public:
   }
 
 private:
-  ULONG mRefCount;
-  IStream *mStream;
+  int mRefCount;
+  iTJSBinaryStream *mStream;
   size_t mSize;
+  size_t mPosition;
 };
 
 static IMemoryAllocator *mAllocator = nullptr;
