@@ -167,8 +167,8 @@ CLASSNAME::getCurrentMotions()
 				if ((dict = TJSCreateDictionaryObject()) != NULL) {	
 					ttstr name = convertUtf8StringToTtstr(mModel->GetCurrentMotionName(no));
 					int loop = mModel->GetCurrentMotionLoop(no);
-					setStrProp(dict, L"name", name);
-					setIntProp(dict, L"loop", loop);
+					setStrProp(dict, TJS_W("name"), name);
+					setIntProp(dict, TJS_W("loop"), loop);
 					tTJSVariant value = tTJSVariant(dict, dict);
 					tTJSVariant *param = &value;
 					obj->FuncCall(0, TJS_W("add"), &addHint, 0, 1, &param, obj);
@@ -202,11 +202,11 @@ CLASSNAME::getParameterInfo(int no)
 	if (mModel) {
 		iTJSDispatch2 *obj;
 		if ((obj = TJSCreateDictionaryObject()) != NULL) {	
-			setStrProp(obj, L"id", convertUtf8StringToTtstr(mModel->GetParameterId(no)));
-			setStrProp(obj, L"name", convertUtf8StringToTtstr(mModel->GetParameterName(no)));
-			setFloatProp(obj, L"min", mModel->GetParameterMinimumValue(no));
-			setFloatProp(obj, L"max", mModel->GetParameterMaximumValue(no));
-			setFloatProp(obj, L"default", mModel->GetParameterDefaultValue(no));
+			setStrProp(obj, TJS_W("id"), convertUtf8StringToTtstr(mModel->GetParameterId(no)));
+			setStrProp(obj, TJS_W("name"), convertUtf8StringToTtstr(mModel->GetParameterName(no)));
+			setFloatProp(obj, TJS_W("min"), mModel->GetParameterMinimumValue(no));
+			setFloatProp(obj, TJS_W("max"), mModel->GetParameterMaximumValue(no));
+			setFloatProp(obj, TJS_W("default"), mModel->GetParameterDefaultValue(no));
 			result = tTJSVariant(obj, obj);
 			obj->Release();
 		}
@@ -426,9 +426,9 @@ CLASSNAME::getPartInfo(int no)
 	if (mModel) {
 		iTJSDispatch2 *obj;
 		if ((obj = TJSCreateDictionaryObject()) != NULL) {	
-			setStrProp(obj, L"id", convertUtf8StringToTtstr(mModel->GetPartId(no)));
-			setStrProp(obj, L"name", convertUtf8StringToTtstr(mModel->GetPartName(no)));
-			setIntProp(obj, L"value", mModel->GetPartValue(no));
+			setStrProp(obj, TJS_W("id"), convertUtf8StringToTtstr(mModel->GetPartId(no)));
+			setStrProp(obj, TJS_W("name"), convertUtf8StringToTtstr(mModel->GetPartName(no)));
+			setIntProp(obj, TJS_W("value"), mModel->GetPartValue(no));
 			result = tTJSVariant(obj, obj);
 			obj->Release();
 		}
@@ -566,14 +566,14 @@ CLASSNAME::getVariableMotionInfo(int index)
     if (mModel) { 
 		iTJSDispatch2 *obj;
 		if ((obj = TJSCreateDictionaryObject()) != NULL) {	
-			setStrProp(obj, L"name", convertUtf8StringToTtstr(mModel->VariableMotionName(index)));
+			setStrProp(obj, TJS_W("name"), convertUtf8StringToTtstr(mModel->VariableMotionName(index)));
 			float min;
 			float max;
 			bool descrete;
 			mModel->VariableMotionInfo(index, min, max, descrete);
-			setFloatProp(obj, L"min", min);
-			setFloatProp(obj, L"max", max);
-			setIntProp(obj, L"descrete", descrete?1:0);
+			setFloatProp(obj, TJS_W("min"), min);
+			setFloatProp(obj, TJS_W("max"), max);
+			setIntProp(obj, TJS_W("descrete"), descrete?1:0);
 			result = tTJSVariant(obj, obj);
 			obj->Release();
 		}
