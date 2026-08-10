@@ -1,0 +1,15 @@
+Live2D Cubism Core
+
+This plugin links Live2D Cubism Core, which is (c) Live2D Inc. and is NOT
+open source software. Live2D Cubism Core is distributed under the Live2D
+Proprietary Software License Agreement:
+
+  https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_en.html
+  https://www.live2d.com/eula/live2d-proprietary-software-license-agreement_jp.html
+
+Applications that include this plugin together with Live2D Cubism Core must
+comply with the terms of that agreement (including the publication license
+for released products). See also the Live2D Open Software License Agreement
+for the Cubism SDK framework components if bundled:
+
+  https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html

@@ -469,4 +469,9 @@ static void PostUnregistCallback()
   Live2DDevice::Done();
 }
 
+// 同梱コンポーネントのライセンスを本体収集機構へ登録
+// (LicensesGen.cpp = licenses/manifest.json から生成)
+extern void RegisterKrkrLive2dLicenses();
+NCB_PRE_REGIST_CALLBACK(RegisterKrkrLive2dLicenses);
+
 NCB_POST_UNREGIST_CALLBACK(PostUnregistCallback);

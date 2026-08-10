@@ -44,6 +44,7 @@ krkrz_plugin(krkrlive2d
     SOURCES
         src/Live2D.h
         src/Live2D.cpp
+        src/LicensesGen.cpp
         src/utils.cpp
         src/MemoryAllocator.cpp
     LIBRARIES
