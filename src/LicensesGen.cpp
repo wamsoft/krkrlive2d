@@ -3,6 +3,10 @@
 
 #include "tp_stub.h"
 
+/* License API 非対応バージョンの tp_stub / 本体ヘッダと組み合わせた
+   ビルドでは登録をまるごとスキップして空関数になる (互換ガード)。 */
+#ifdef TVP_HAS_LICENSE_API
+
 /* Live2D Cubism Core (734 -> 330 bytes) */
 static const unsigned char lic_00[] = {
 	120,218,173,146,177,110,195,32,20,69,119,190,226,141,137,84,219,82,199,108,81,178,84,141,
@@ -25,3 +29,9 @@ void RegisterKrkrLive2dLicenses()
 {
 	TVPRegisterLicense(TJS_W("Live2D Cubism Core"), TJS_W("plugin:krkrlive2d"), lic_00, 330, 734);
 }
+
+#else /* !TVP_HAS_LICENSE_API */
+
+void RegisterKrkrLive2dLicenses() {}
+
+#endif /* TVP_HAS_LICENSE_API */
