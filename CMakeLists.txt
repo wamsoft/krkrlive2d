@@ -19,6 +19,8 @@ option(USE_GLES2 "" ON)
 # .../include/*.h) を持つが、krkrz プラグインとして組み込むときの配布物は
 # プラグイン DLL だけ。そのまま install すると bin/ に SDK 一式が混ざるので抑止する。
 set(LIVE2DDRIVER_INSTALL OFF CACHE BOOL "Generate install rules for live2d driver SDK" FORCE)
+# 同様に KTX-Software (wtnbgo fork custom ブランチ) の install も抑止する
+set(KTX_INSTALL OFF CACHE BOOL "Generate libktx install rules" FORCE)
 
 # ドライバソースの取得方針:
 #   1. 環境変数 LIVE2DLIB_FOLDER が指すパスにソースがあればそれを使う (ローカル開発用)
@@ -37,7 +39,6 @@ else()
     )
     FetchContent_MakeAvailable(live2ddriver)
 endif()
-unset(CMAKE_SKIP_INSTALL_RULES)
 
 krkrz_plugin(krkrlive2d
     NCBIND
