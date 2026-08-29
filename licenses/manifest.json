@@ -1,5 +1,5 @@
 {
   "entries": [
-    { "name": "Live2D Cubism Core", "group": "plugin:krkrlive2d", "file": "texts/live2d-cubism-core.txt" }
+    { "name": "Live2D Cubism Core", "group": "plugin:krkrlive2d", "license": "Live2D Proprietary Software License","file": "texts/live2d-cubism-core.txt", "note": "非 OSS。個別契約と規定のクレジット表記が必要" }
   ]
 }
