@@ -27,7 +27,11 @@ static const unsigned char lic_00[] = {
 
 void RegisterKrkrLive2dLicenses()
 {
-	TVPRegisterLicense(TJS_W("Live2D Cubism Core"), TJS_W("plugin:krkrlive2d"), lic_00, 330, 734);
+	try {
+		TVPRegisterLicense(TJS_W("Live2D Cubism Core"), TJS_W("plugin:krkrlive2d"), lic_00, 330, 734);
+	} catch (...) {
+		/* 本体が License API を持たない (古い本体) ときは登録しない */
+	}
 }
 
 #else /* !TVP_HAS_LICENSE_API */
